@@ -13,16 +13,14 @@ class GameFetcher(nbEx: Int) extends BaseDataFetcher{
 
   var gameList = List[Game]()
 
-  override def hasMore() = {
-    files.hasNext
-  }
-
-  override def reset() =
+  override def reset() = {
     files = scala.tools.nsc.io.Directory("games/").files
+    cursor = 0
+  }
 
   override def fetch(nb: Int) = {
     var lgl = List[Game]()
-    while (lgl.length < nb && hasMore()) {
+    while (lgl.length < nb && files.hasNext) {
       if (gameList.isEmpty) {
         val log = LocalReader.createSet(files.next())
         gameList :::= log
@@ -31,11 +29,11 @@ class GameFetcher(nbEx: Int) extends BaseDataFetcher{
       lgl :::= gameList.take(toTake)
       gameList = gameList.drop(toTake)
     }
-
     val in1 = Nd4j.create(lgl.map(x => (x.toInput.toArray)).toArray)
     val out = Nd4j.create(lgl.map(x => Array(x.grid.eval.toFloat/3000f)).toArray)
     val next: DataSet = new DataSet(in1, out)
     next.normalizeZeroMeanZeroUnitVariance()
+    cursor += nb
     curr = next
   }
 
